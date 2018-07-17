@@ -8,6 +8,7 @@
      messagingSenderId: "630877659629"
  };
  firebase.initializeApp(config);
+ var query = firebase.database().ref().orderByKey();
 
  // Create a variable to reference the database.
  var database = firebase.database();
@@ -41,41 +42,43 @@
      });
  });
  var query = firebase.database().ref().orderByKey();
- query.once("value")
-     .then(function (snapshot) {
-         snapshot.forEach(function (childSnapshot) {
-             var childData = childSnapshot.val();
-             //  console.log("Child Data: ", childData)
-             console.log(childData.color);
-             //change marker based on status(lost or found)
-             if (childData.color == 'Black') {
-                 console.log('ajax test')
-                 $.ajax({
-                     type: 'POST',
-                     url: "https://fcm.googleapis.com/fcm/send",
-                     headers: {
-                         Authorization: 'key=' + 'AAAAkuM9Ie0:APA91bH0RBfuSw37xGgfNw0NDdz4dwhjxb2S5llgl1TfkzH5vS56LRZe4ldRwMwNr34N46wo2iZvhDZsw4GPVTyx_2FZvCVIpDsyf5nEUyh516CHIie2LNaTsAuIfQ4T2-Edtje9WEhI4SnTywjDlR82Rnq4muMEKQ'
-                     },
-                     contentType: 'application/json',
-                     dataType: 'json',
-                     data: JSON.stringify({
-                         "to": "en32vwWrK20:APA91bE46bMfwgV-f5UA1K-8jW3oOeAOvAHFFRmmWNkrDu-PpJG_mL8rF3awabIPb5kBu99C17diTnYlc_wtmRBGh9A5ZvqvbU8vz42puTARrN0KF4vAy2lMLeV3zLLD11tbPy-6WuNxeXZBvf3teZ3ABBgD2gNtOQ",
-                         "data": {
-                             "status": "There's a bike matching your description in our database! Click on the blue markers to see which one."
+
+ function fcmAjax(color) {
+     query.once("value")
+         .then(function (snapshot) {
+             snapshot.forEach(function (childSnapshot) {
+                 var childData = childSnapshot.val();
+                 //  console.log("Child Data: ", childData)
+                 console.log(childData.color);
+                 //change marker based on status(lost or found)
+                 if (childData.status == 0 && childData.color == color) {
+                     console.log('ajax test')
+                     $.ajax({
+                         type: 'POST',
+                         url: "https://fcm.googleapis.com/fcm/send",
+                         headers: {
+                             Authorization: 'key=' + 'AAAAkuM9Ie0:APA91bH0RBfuSw37xGgfNw0NDdz4dwhjxb2S5llgl1TfkzH5vS56LRZe4ldRwMwNr34N46wo2iZvhDZsw4GPVTyx_2FZvCVIpDsyf5nEUyh516CHIie2LNaTsAuIfQ4T2-Edtje9WEhI4SnTywjDlR82Rnq4muMEKQ'
+                         },
+                         contentType: 'application/json',
+                         dataType: 'json',
+                         data: JSON.stringify({
+                             "to": childData.token,
+                             "data": {
+                                 "status": "There's a bike matching your description in our database! Click on the blue markers to see which one."
+                             }
+                         }),
+                         success: function (response) {
+                             console.log(response);
+                         },
+                         error: function (xhr, status, error) {
+                             console.log(xhr.error);
                          }
-                     }),
-                     success: function (response) {
-                         console.log(response);
-                     },
-                     error: function (xhr, status, error) {
-                         console.log(xhr.error);
-                     }
-                 });
-             }
+                     });
+                 }
+             });
+
          });
-
-     });
-
+ }
 
  function initMap() {
 
@@ -243,7 +246,8 @@
          token: token,
          dateAdded: firebase.database.ServerValue.TIMESTAMP
      });
-     //  $('#form')
+     fcmAjax(color);
+     infowindow.close();
  }
 
  function downloadUrl(url, callback) {
