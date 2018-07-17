@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB"
+        crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.2.0/firebase.js"></script>
+    <!-- GeoFire -->
+    <script src="https://cdn.firebase.com/libs/geofire/4.1.2/geofire.min.js"></script>
+    <script src="mapsAPI.js"></script>
+    <script src="redditapi.js"></script>
+    <!-- <script src="geofire.js"></script> -->
+    <!-- <script src="/Bike-Finder/firebase-messaging-sw.js"></script> -->
+    <style>
+        /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+
+        #map {
+            height: 80%;
+        }
+
+        /* Optional: Makes the sample page fill the window. */
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- <div id="myModal" class="modal modal-sm">
+
+     
+        <div class="modal-content modal-dialog-centered">
+            <span class="close">&times;</span>
+            <p>To get started, simply click the map at the location of where your bike was lost or found then enter your information.
+            </p>
+        </div>
+
+    </div> -->
+
+    <div class="modal" id="myModal" role="dialog" aria-labelledby="myModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Bike Finder</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>To get started, simply click the map where your bike was lost or found then enter your information. There's
+                        no login or account required but you need to allow notifications if you'd like to be notified when
+                        a bike matching your description is found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Bike Finder</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">Lost/Stolen Bike?
+                        <span class="sr-only">(current)</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Found a Bike?</a>
+                </li>
+                <!-- <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true"
+                        aria-expanded="false">
+                        Dropdown
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="#">Action</a>
+                        <a class="dropdown-item" href="#">Another action</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Something else here</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Disabled</a>
+                </li> -->
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </form>
+        </div>
+    </nav>
+
+    <div id="map"></div>
+    <div class="row" style="margin-top: 15px">
+        <div class="col-sm-6">
+            <div class="card">
+                <div class="card-header">
+                    Found Bikes on r/Denver
+                </div>
+                <div class="card-body">
+                    <p class="card-text" id="text"> </p>
+                    <a href="#" class="btn btn-primary" id="test">Search</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="card">
+                <div class="card-header">
+                    Found Bikes on r/Boulder
+                </div>
+                <div class="card-body">
+                    <p class="card-text" id="text1"></p>
+                    <a href="#" class="btn btn-primary" id="test1">Search</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="map" height="460px" width="100%"></div>
+    <div id="form">
+        <table>
+            <tr>
+                <td>Status:</td>
+                <td>
+                    <fieldset id="status-input">
+                        <input id="lost" type="radio" value="0" name="status-input">Lost/Stolen
+                        <input id="found" type="radio" value="1" name="status-input">Found
+                    </fieldset>
+                </td>
+            </tr>
+            <tr>
+                <td>Make:</td>
+                <td>
+                    <input type='text' id='make-input' /> </td>
+            </tr>
+            <tr>
+                <td>Model:</td>
+                <td>
+                    <input type='text' id='model-input' /> </td>
+            </tr>
+            <tr>
+                <td>Color:</td>
+                <td>
+                    <input type='text' id='color-input' /> </td>
+            </tr>
+            <tr>
+                <td>Year:</td>
+                <td>
+                    <input type='text' id='age-input' /> </td>
+            </tr>
+            <tr>
+                <td>Size:</td>
+                <td>
+                    <input type='text' id='size-input' /> </td>
+            </tr>
+            <tr>
+                <td>License:</td>
+                <td>
+                    <input type='text' id='license-input' /> </td>
+            </tr>
+            <tr>
+                <td>Serial Number:</td>
+                <td>
+                    <input type='text' id='serial-input' /> </td>
+            </tr>
+            <tr>
+                <td>Image: (required)</td>
+                <td>
+                    <div id='filesubmit'>
+                        <input id="image-input" onchange="encodeImageFileAsURL(this)" type="file" class='file-select' name="pic" accept="image/*"
+                            required>
+                        <!-- <input type="submit"> -->
+                        </form>
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>
+                    <input type='button' class='file-submit' value='Submit' onclick="saveData()" />
+                </td>
+            </tr>
+        </table>
+        </div>
+        <!-- <div id="message">Location saved</div> -->
+
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4d7jTSocgsZ7WSgh2LHVj_D3LPbQ3QVw&callback=initMap" async
+            defer></script>
+        <script>
+            // Get the modal
+            var modal = document.getElementById('myModal');
+
+            // Get the button that opens the modal
+            // var btn = document.getElementById("myBtn");
+
+            // Get the <span> element that closes the modal
+            var span = document.getElementsByClassName("close")[0];
+
+            // When the user clicks on the button, open the modal 
+            document.addEventListener("DOMContentLoaded", function (event) {
+                modal.style.display = "block";
+            });
+            // btn.onclick = function () {
+            //     modal.style.display = "block";
+            // }
+
+            // When the user clicks on <span> (x), close the modal
+            span.onclick = function () {
+                modal.style.display = "none";
+            }
+
+            // When the user clicks anywhere outside of the modal, close it
+            window.onclick = function (event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+        </script>
+</body>
+
+</html>
